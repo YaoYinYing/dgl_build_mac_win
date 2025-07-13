@@ -73,6 +73,9 @@ jobs:
           brew install cmake
           brew install libuv
           brew install openssl zlib
+          brew install llvm libomp
+          # Add LLVM clang to PATH for convenience
+          echo "::add-path::$(brew --prefix llvm)/bin"
           xcode-select --install || true
 
       - name: Install PyTorch (macOS or Windows CPU)
@@ -103,7 +106,7 @@ jobs:
       - name: Build DGL
         run: |
           mkdir build && cd build
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+          if [ "${{ runner.os }}" == "macOS" ]; then
             cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
             cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
           else
@@ -122,7 +125,7 @@ jobs:
 
       - name: Package Artifacts
         run: |
-          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
+          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
           mkdir -p artifacts
           cp python/dist/dgl*.whl artifacts/
           cd artifacts
@@ -133,5 +136,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
+          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
           path: dgl-src/artifacts/dgl-*.zip
