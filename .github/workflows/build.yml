@@ -24,7 +24,9 @@ jobs:
         os: [macos-latest, windows-latest]
         arch: [x64, arm64]
         cuda: [false, true]
-
+        exclude:
+          - os: macos-latest
+            cuda: true
 
     env:
       DGL_BUILD_CPU: "ON"
@@ -78,13 +80,15 @@ jobs:
         run: |
           choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
           choco install visualstudio2019buildtools -y
+        shell: bash
 
       - name: Install Dependencies (Windows, CUDA)
         if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'true'
         run: |
           choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
           choco install visualstudio2019buildtools -y
-          choco install cuda --version=11.8 -y
+          choco install cuda -y
+        shell: bash
 
       - name: Build DGL
         run: |
@@ -104,6 +108,7 @@ jobs:
           cd python
           python setup.py bdist_wheel
         working-directory: dgl-src
+        shell: bash
 
       - name: Package Artifacts
         run: |
@@ -113,6 +118,7 @@ jobs:
           cd artifacts
           zip -r dgl-${TAG}.zip .
         working-directory: dgl-src
+        shell: bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
