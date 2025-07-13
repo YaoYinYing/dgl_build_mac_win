@@ -75,6 +75,16 @@ jobs:
           brew install openssl zlib
           xcode-select --install || true
 
+      - name: Install PyTorch (macOS or Windows CPU)
+        if: env.DGL_BUILD_CUDA == 'false'
+        run: |
+          pip3 install torch torchvision torchaudio
+      
+      - name: Install PyTorch (Windows CUDA)
+        if: env.DGL_BUILD_CUDA == 'true'
+        run: |
+          pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
       - name: Install Dependencies (Windows, CPU-only)
         if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'false'
         run: |
