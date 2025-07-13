@@ -11,6 +11,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
         arch: [x64, arm64]
@@ -23,9 +24,15 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+        uses: actions/checkout@v4
+
+        
+      - name: Clone DGL with submodules
+        run: |
+          git clone --recurse-submodules https://github.com/dmlc/dgl.git dgl-src
+          cd dgl-src
+          git submodule update --init --recursive
+        working-directory: .
 
       - name: Setup Python
         uses: actions/setup-python@v4
