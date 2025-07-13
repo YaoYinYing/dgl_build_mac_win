@@ -1,0 +1,83 @@
+name: Build DGL from source
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        arch: [x64, arm64]
+        cuda: [false, true]
+
+
+    env:
+      DGL_BUILD_CPU: "ON"
+      DGL_BUILD_CUDA: ${{ matrix.cuda }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake
+          xcode-select --install || true
+
+      - name: Install Dependencies (Windows, CPU-only)
+        if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'false'
+        run: |
+          choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
+          choco install visualstudio2019buildtools -y
+
+      - name: Install Dependencies (Windows, CUDA)
+        if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'true'
+        run: |
+          choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
+          choco install visualstudio2019buildtools -y
+          choco install cuda --version=11.8 -y
+
+      - name: Build DGL
+        run: |
+          mkdir build && cd build
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            cmake -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF ..
+            cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
+          else
+            cmake -DDGL_EXPORTS -DCMAKE_CONFIGURATION_TYPES=Release -DDMLC_FORCE_SHARED_CRT=ON ..
+            cmake --build . --config Release -- /m
+          fi
+
+      - name: Build Python Wheel
+        run: |
+          cd python
+          python setup.py bdist_wheel
+
+      - name: Package Artifacts
+        run: |
+          TAG="${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
+          mkdir -p artifacts
+          cp python/dist/dgl*.whl artifacts/
+          cd artifacts
+          zip -r dgl-${TAG}.zip .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dgl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
+          path: artifacts/dgl-*.zip
