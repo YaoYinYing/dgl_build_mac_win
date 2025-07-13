@@ -34,6 +34,13 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Clone DGL repo with submodules
+        run: |
+          git clone  \
+            --recurse-submodules https://github.com/dmlc/dgl.git dgl-src
+          cd dgl-src
+          git submodule update --init --recursive
+
         
       - name: Determine DGL version
         id: dgl_version
@@ -42,22 +49,14 @@ jobs:
             TAG=${{ github.event.inputs.build_version }}
             echo Using Tag `$TAG` from input
           else
-            TAG=$(curl -sL https://api.github.com/repos/dmlc/dgl/releases/latest \
-              | jq -r '.tag_name')
-            echo Using Tag `$TAG` from upstream release
+            TAG=$(git tag -l --sort=-taggerdate |head -1)
+            echo Using Tag $TAG from upstream release
           fi
           # pin to output as 
           # ${{ steps.dgl_version.outputs.TAG }}
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
-          
-
-      - name: Clone DGL repo with submodules
-        run: |
-          git clone --branch ${{ steps.dgl_version.outputs.TAG }} \
-            --recurse-submodules https://github.com/dmlc/dgl.git dgl-src
-          cd dgl-src
-          git submodule update --init --recursive
-
+        working-directory: dgl-src
+        
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
