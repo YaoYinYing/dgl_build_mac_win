@@ -36,8 +36,7 @@ jobs:
 
       - name: Clone DGL repo with submodules
         run: |
-          git clone  \
-            --recurse-submodules https://github.com/dmlc/dgl.git dgl-src
+          git clone --recurse-submodules https://github.com/dmlc/dgl.git dgl-src
           cd dgl-src
           git submodule update --init --recursive
 
@@ -67,6 +66,8 @@ jobs:
         run: |
           brew update
           brew install cmake
+          brew install libuv
+          brew install openssl zlib
           xcode-select --install || true
 
       - name: Install Dependencies (Windows, CPU-only)
