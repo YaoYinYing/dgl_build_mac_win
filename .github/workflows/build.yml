@@ -77,7 +77,7 @@ jobs:
           zip -r dgl-${TAG}.zip .
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dgl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
           path: artifacts/dgl-*.zip
