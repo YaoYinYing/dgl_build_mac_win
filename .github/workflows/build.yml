@@ -46,15 +46,18 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.build_version }}" ]; then
             TAG=${{ github.event.inputs.build_version }}
-            echo Using Tag `$TAG` from input
+            echo Using Tag $TAG from input
           else
-            TAG=$(git tag -l --sort=-taggerdate |head -1)
+            TAG=$(git tag -l --sort=-taggerdate |tail -1)
             echo Using Tag $TAG from upstream release
           fi
           # pin to output as 
           # ${{ steps.dgl_version.outputs.TAG }}
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
         working-directory: dgl-src
+        shell: bash
+        
         
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -87,7 +90,7 @@ jobs:
         run: |
           mkdir build && cd build
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            cmake -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF ..
+            cmake -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
             cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
           else
             cmake -DDGL_EXPORTS -DCMAKE_CONFIGURATION_TYPES=Release -DDMLC_FORCE_SHARED_CRT=ON ..
