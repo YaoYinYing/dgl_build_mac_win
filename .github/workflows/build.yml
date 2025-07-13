@@ -90,13 +90,14 @@ jobs:
         run: |
           mkdir build && cd build
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            cmake -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
+            cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
             cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
           else
-            cmake -DDGL_EXPORTS -DCMAKE_CONFIGURATION_TYPES=Release -DDMLC_FORCE_SHARED_CRT=ON ..
+            cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5  -DDGL_EXPORTS -DCMAKE_CONFIGURATION_TYPES=Release -DDMLC_FORCE_SHARED_CRT=ON ..
             cmake --build . --config Release -- /m
           fi
         working-directory: dgl-src
+        shell: bash
 
       - name: Build Python Wheel
         run: |
