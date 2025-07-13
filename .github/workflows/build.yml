@@ -39,12 +39,16 @@ jobs:
         id: dgl_version
         run: |
           if [ -n "${{ github.event.inputs.build_version }}" ]; then
-            echo "::set-output name=TAG::${{ github.event.inputs.build_version }}"
+            TAG=${{ github.event.inputs.build_version }}
+            echo Using Tag `$TAG` from input
           else
             TAG=$(curl -sL https://api.github.com/repos/dmlc/dgl/releases/latest \
               | jq -r '.tag_name')
-            echo "::set-output name=TAG::$TAG"
+            echo Using Tag `$TAG` from upstream release
           fi
+          # pin to output as 
+          # ${{ steps.dgl_version.outputs.TAG }}
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
           
 
       - name: Clone DGL repo with submodules
@@ -99,7 +103,7 @@ jobs:
 
       - name: Package Artifacts
         run: |
-          TAG="${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
+          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
           mkdir -p artifacts
           cp python/dist/dgl*.whl artifacts/
           cd artifacts
@@ -109,5 +113,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dgl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
+          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
           path: dgl-src/artifacts/dgl-*.zip
