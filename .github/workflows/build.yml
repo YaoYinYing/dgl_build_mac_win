@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
-        arch: [x64, arm64]
+        # arch: [x64, arm64]
         cuda: [false, true]
         exclude:
           - os: macos-latest
@@ -35,6 +35,12 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+
+      - name: Setup MSVC++ environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Clone DGL repo with submodules
         run: |
@@ -73,44 +79,38 @@ jobs:
           brew install cmake
           brew install libuv
           brew install openssl zlib
-          brew install llvm
+          brew install llvm libomp
           brew install lld
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
           echo "PATH=/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_ENV"
           xcode-select --install || true
 
-
-      - name: Install Dependencies (Windows, CPU-only)
-        if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'false'
-        run: |
-          
-          choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
-          choco install visualstudio2019buildtools -y
-          pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cpu
-        shell: bash
-
-      - name: Install Dependencies (Windows, CUDA)
-        if: runner.os == 'Windows' && env.DGL_BUILD_CUDA == 'true'
+      - name: Install Dependencies (Windows)
+        if: runner.os == 'Windows'
         run: |
           choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
-          choco install visualstudio2019buildtools -y
-          choco install cuda -y
-          pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
+          if [ "${{ env.DGL_BUILD_CUDA }}" == 'true' ]; then
+            echo Installing CUDA as env.DGL_BUILD_CUDA = ${{ env.DGL_BUILD_CUDA }}
+            choco install cuda -y
+          fi
+          pip install -v torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/${{ matrix.cuda && 'cu124' || 'cpu' }}
         shell: bash
 
       - name: Build DGL (macOS)
         if: runner.os == 'macOS'
         run: |
           mkdir build && cd build
-          
-          # echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
-          # echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
-          
-          # cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
-          # cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
+          echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
+          echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
 
-          cmake -DUSE_OPENMP=off -DUSE_LIBXSMM=OFF -DUSE_EPOLL=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DOpenMP_C_FLAGS="-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include" \
+            -DOpenMP_C_LIB_NAMES="omp" \
+            -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include" \
+            -DOpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib \
+            -DUSE_LIBXSMM=OFF \
+            -DUSE_EPOLL=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           make -j$(sysctl -n hw.ncpu)
           cd ../python
           python setup.py install
@@ -122,9 +122,10 @@ jobs:
       - name: Build DGL (Windows)
         if: runner.os == 'Windows'
         run: |
+            $env:PATH += ";C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin"
             MD build
             CD build
-            cmake -DCMAKE_CXX_FLAGS="/DDGL_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -DDMLC_FORCE_SHARED_CRT=ON ${{ matrix.cuda && '-DUSE_CUDA=ON' || '' }} .. -G "Visual Studio 16 2019"
+            cmake -DCMAKE_CXX_FLAGS="/DDGL_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -DDMLC_FORCE_SHARED_CRT=ON ${{ matrix.cuda && '-DUSE_CUDA=ON' || '' }} .. -G "Visual Studio 17 2022"
             msbuild dgl.sln /m
         working-directory: dgl-src
         shell: powershell
@@ -138,7 +139,7 @@ jobs:
 
       - name: Package Artifacts
         run: |
-          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}-${{ matrix.cuda && '-cuda' || 'cpu' }}"
+          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.cuda && '-cuda' || 'cpu' }}"
           mkdir -p artifacts
           cp python/dist/dgl*.whl artifacts/
           cd artifacts
@@ -149,5 +150,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}-${{ matrix.cuda && '-cuda' || 'cpu' }}
+          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.cuda && '-cuda' || 'cpu' }}
           path: dgl-src/artifacts/dgl-*.zip
