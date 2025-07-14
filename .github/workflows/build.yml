@@ -73,7 +73,7 @@ jobs:
           brew install cmake
           brew install libuv
           brew install openssl zlib
-          brew install llvm libomp
+          brew install llvm
           brew install lld
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
@@ -99,22 +99,35 @@ jobs:
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
         shell: bash
 
-      - name: Build DGL
+      - name: Build DGL (macOS)
+        if: runner.os == 'macOS'
         run: |
           mkdir build && cd build
-          if [ "${{ runner.os }}" == "macOS" ]; then
           
-            echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
-            echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
-            
-            cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
-            cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
-          else
-            cmake -D CMAKE_POLICY_VERSION_MINIMUM=3.5  -D DGL_EXPORTS -D CMAKE_CONFIGURATION_TYPES=Release -D DMLC_FORCE_SHARED_CRT=ON ..
-            cmake --build . --config Release -- /m
-          fi
+          # echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
+          # echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
+          
+          # cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DUSE_LIBXSMM=OFF -DUSE_OPENMP=OFF -DUSE_EPOLL=OFF ..
+          # cmake --build . --config Release -- -j$(sysctl -n hw.ncpu)
+
+          cmake -DUSE_OPENMP=off -DUSE_LIBXSMM=OFF -DUSE_EPOLL=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          make -j$(sysctl -n hw.ncpu)
+          cd ../python
+          python setup.py install
+          # Build Cython extension
+          python setup.py build_ext --inplace
         working-directory: dgl-src
         shell: bash
+
+      - name: Build DGL (Windows)
+        if: runner.os == 'Windows'
+        run: |
+            MD build
+            CD build
+            cmake -DCMAKE_CXX_FLAGS="/DDGL_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -DDMLC_FORCE_SHARED_CRT=ON ${{ matrix.cuda && '-DUSE_CUDA=ON' || '' }} .. -G "Visual Studio 16 2019"
+            msbuild dgl.sln /m
+        working-directory: dgl-src
+        shell: powershell
 
       - name: Build Python Wheel
         run: |
@@ -125,7 +138,7 @@ jobs:
 
       - name: Package Artifacts
         run: |
-          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}"
+          TAG="${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}-${{ matrix.cuda && '-cuda' || 'cpu' }}"
           mkdir -p artifacts
           cp python/dist/dgl*.whl artifacts/
           cd artifacts
@@ -136,5 +149,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}${{ matrix.cuda && '-cuda' || '' }}
+          name: dgl-${{ steps.dgl_version.outputs.TAG }}-${{ runner.os }}-${{ matrix.arch }}-${{ matrix.cuda && '-cuda' || 'cpu' }}
           path: dgl-src/artifacts/dgl-*.zip
