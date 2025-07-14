@@ -81,6 +81,7 @@ jobs:
           brew install openssl zlib
           brew install llvm libomp
           brew install lld
+          brew link --force libomp
           # brew install libomp
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
@@ -103,16 +104,20 @@ jobs:
         run: |
           mkdir build && cd build
           
-          echo "CC='/opt/homebrew/opt/llvm/bin/clang'" >> "$GITHUB_ENV"
-          echo "CXX='/opt/homebrew/opt/llvm/bin/clang++'" >> "$GITHUB_ENV"
+          # echo "CC='/opt/homebrew/opt/llvm/bin/clang'" >> "$GITHUB_ENV"
+          # echo "CXX='/opt/homebrew/opt/llvm/bin/clang++'" >> "$GITHUB_ENV"
           
-          echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
-          echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
+          # echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
+          # echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
           # echo "LDFLAGS=-L/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
           # echo "CPPFLAGS=-I/opt/homebrew/opt/libomp/include" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
-          echo "CMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp:\$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
+          # echo "LIBRARY_PATH=/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
+          # echo "CMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp:\$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
 
+          CC='/opt/homebrew/opt/llvm/bin/clang' \
+          CXX='/opt/homebrew/opt/llvm/bin/clang++' \
+          LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
+          CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
           cmake \
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
