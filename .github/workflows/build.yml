@@ -79,8 +79,8 @@ jobs:
           brew install cmake
           brew install libuv
           brew install openssl zlib
-          brew install llvm libomp
-          brew install lld
+          # brew install llvm libomp
+          # brew install lld
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
           echo "PATH=/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_ENV"
@@ -104,10 +104,7 @@ jobs:
           echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
           echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
 
-          cmake -DOpenMP_C_FLAGS="-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include" \
-            -DOpenMP_C_LIB_NAMES="omp" \
-            -DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include" \
-            -DOpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib \
+          cmake -DUSE_OPENMP=off \
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
