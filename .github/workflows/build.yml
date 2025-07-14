@@ -81,6 +81,7 @@ jobs:
           brew install openssl zlib
           brew install llvm libomp
           brew install lld
+          brew install gcc@9
           brew link --force libomp
           # brew install libomp
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
