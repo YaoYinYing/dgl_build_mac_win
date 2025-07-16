@@ -78,7 +78,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install cmake
+          # brew install cmake
           brew install libuv
           brew install gnu-sed
           # brew install openssl zlib
@@ -125,8 +125,7 @@ jobs:
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
             -DUSE_OPENMP=OFF \
-            -DBUILD_CPP_TEST=OFF \ 
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 
+            -DBUILD_CPP_TEST=OFF
             
           make -j$(sysctl -n hw.ncpu)
           cd ../python
