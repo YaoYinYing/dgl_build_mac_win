@@ -106,10 +106,6 @@ jobs:
       - name: Build DGL (macOS)
         if: runner.os == 'macOS'
         run: |
-          # disable graphbold omp
-          # see https://github.com/dmlc/dgl/issues/7833
-          gsed -i 's/option(USE_OPENMP "Use OpenMP for graphbolt" ON)/option(USE_OPENMP "Use OpenMP for graphbolt" OFF)/g' graphbolt/CMakeLists.txt
-          
           mkdir build && cd build
           
           # echo "CC='/opt/homebrew/opt/llvm/bin/clang'" >> "$GITHUB_ENV"
@@ -126,6 +122,11 @@ jobs:
           # CXX='/opt/homebrew/opt/llvm/bin/clang++' \
           # LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
           # CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
+
+          # disable graphbolt omp
+          # see https://github.com/dmlc/dgl/issues/7833
+          gsed -i 's/option(USE_OPENMP "Use OpenMP for graphbolt" ON)/option(USE_OPENMP "Use OpenMP for graphbolt" OFF)/g' ../graphbolt/CMakeLists.txt
+          
 
           
           cmake \
