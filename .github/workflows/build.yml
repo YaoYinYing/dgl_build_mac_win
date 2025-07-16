@@ -63,6 +63,8 @@ jobs:
           # ${{ steps.dgl_version.outputs.TAG }}
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
+          git checkout $TAG
+
         working-directory: dgl-src
         shell: bash
         
@@ -106,35 +108,26 @@ jobs:
       - name: Build DGL (macOS)
         if: runner.os == 'macOS'
         run: |
-          mkdir build && cd build
+          mkdir build
+          cd build
           
-          # echo "CC='/opt/homebrew/opt/llvm/bin/clang'" >> "$GITHUB_ENV"
-          # echo "CXX='/opt/homebrew/opt/llvm/bin/clang++'" >> "$GITHUB_ENV"
-          
-          # echo "LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib'" >> "$GITHUB_ENV"
-          # echo "CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include'" >> "$GITHUB_ENV"
-          # echo "LDFLAGS=-L/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
-          # echo "CPPFLAGS=-I/opt/homebrew/opt/libomp/include" >> $GITHUB_ENV
-          # echo "LIBRARY_PATH=/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
-          # echo "CMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp:\$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
-
-          # CC='/opt/homebrew/opt/llvm/bin/clang' \
-          # CXX='/opt/homebrew/opt/llvm/bin/clang++' \
-          # LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
-          # CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
-
           # disable graphbolt omp
           # see https://github.com/dmlc/dgl/issues/7833
           gsed -i 's/option(USE_OPENMP "Use OpenMP for graphbolt" ON)/option(USE_OPENMP "Use OpenMP for graphbolt" OFF)/g' ../graphbolt/CMakeLists.txt
-          
-
-          
-          cmake \
+          echo List parent:
+          ls ..
+          echo List graphbolt
+          ls ../graphbolt
+          echo Check Gsed mod: 
+          grep "Use OpenMP for graphbolt" ../graphbolt/CMakeLists.txt
+          echo Run cmake
+          cmake .. \
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
             -DUSE_OPENMP=OFF \
             -DBUILD_CPP_TEST=OFF \ 
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 
+            
           make -j$(sysctl -n hw.ncpu)
           cd ../python
           python setup.py install
