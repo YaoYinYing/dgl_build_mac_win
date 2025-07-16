@@ -78,15 +78,15 @@ jobs:
           brew update
           brew install cmake
           brew install libuv
-          brew install openssl zlib
-          brew install llvm libomp
-          brew install lld
-          brew install gcc@9
-          brew link --force libomp
+          # brew install openssl zlib
+          # brew install llvm libomp
+          # brew install lld
+          # brew install gcc@9
+          # brew link --force libomp
           # brew install libomp
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
-          echo "PATH=/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_ENV"
+          # echo "PATH=/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_ENV"
           xcode-select --install || true
 
       - name: Install Dependencies (Windows)
@@ -115,13 +115,14 @@ jobs:
           # echo "LIBRARY_PATH=/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
           # echo "CMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp:\$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
 
-          CC='/opt/homebrew/opt/llvm/bin/clang' \
-          CXX='/opt/homebrew/opt/llvm/bin/clang++' \
-          LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
-          CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
+          # CC='/opt/homebrew/opt/llvm/bin/clang' \
+          # CXX='/opt/homebrew/opt/llvm/bin/clang++' \
+          # LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
+          # CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
           cmake \
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
+            -DUSE_OPENMP=OFF \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           make -j$(sysctl -n hw.ncpu)
           cd ../python
@@ -137,7 +138,7 @@ jobs:
             $env:PATH += ";C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin"
             MD build
             CD build
-            cmake -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_CXX_FLAGS="/DDGL_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -DDMLC_FORCE_SHARED_CRT=ON ${{ matrix.cuda && '-DUSE_CUDA=ON' || '' }} .. -G "Visual Studio 17 2022"
+            cmake -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_CXX_FLAGS="/DDGL_EXPORTS" -DCMAKE_CONFIGURATION_TYPES="Release" -DDMLC_FORCE_SHARED_CRT=ON ${{ matrix.cuda && '-DUSE_CUDA=ON' || '-DUSE_CUDA=OFF' }} .. -G "Visual Studio 17 2022"
             msbuild dgl.sln /m
         working-directory: dgl-src
         shell: powershell
