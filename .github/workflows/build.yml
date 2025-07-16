@@ -114,6 +114,10 @@ jobs:
           # disable graphbolt omp
           # see https://github.com/dmlc/dgl/issues/7833
           gsed -i 's/option(USE_OPENMP "Use OpenMP for graphbolt" ON)/option(USE_OPENMP "Use OpenMP for graphbolt" OFF)/g' ../graphbolt/CMakeLists.txt
+
+          # rm cccl/libcudacxx dir
+          rm -rf ../third_party/cccl/libcudacxx/
+          
           echo List parent:
           ls ..
           echo List graphbolt
