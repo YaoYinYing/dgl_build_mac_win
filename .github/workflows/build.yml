@@ -78,12 +78,14 @@ jobs:
           brew update
           brew install cmake
           brew install libuv
+          brew install gnu-sed
           # brew install openssl zlib
           # brew install llvm libomp
           # brew install lld
           # brew install gcc@9
           # brew link --force libomp
           # brew install libomp
+          pip install --upgrade pip wheel
           pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
           # Add LLVM clang to PATH for convenience
           # echo "PATH=/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_ENV"
@@ -97,6 +99,7 @@ jobs:
             echo Installing CUDA as env.DGL_BUILD_CUDA = ${{ env.DGL_BUILD_CUDA }}
             choco install cuda -y
           fi
+          pip install --upgrade pip wheel
           pip install -v torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/${{ matrix.cuda && 'cu124' || 'cpu' }}
         shell: bash
 
@@ -119,10 +122,16 @@ jobs:
           # CXX='/opt/homebrew/opt/llvm/bin/clang++' \
           # LDFLAGS='-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libomp/lib' \
           # CPPFLAGS='-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/libomp/include' \
+
+          # disable graphbold omp
+          # see https://github.com/dmlc/dgl/issues/7833
+          gsed -i 's/option(USE_OPENMP "Use OpenMP for graphbolt" ON)/option(USE_OPENMP "Use OpenMP for graphbolt" OFF)/g' graphbolt/CMakeLists.txt
+          
           cmake \
             -DUSE_LIBXSMM=OFF \
             -DUSE_EPOLL=OFF \
-            -DUSE_OPENMP=off \
+            -DUSE_OPENMP=OFF \
+            -DBUILD_CPP_TEST=OFF \ 
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           make -j$(sysctl -n hw.ncpu)
           cd ../python
